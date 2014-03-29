@@ -48,13 +48,14 @@ func WriteMdb(f* os.File, db []MdbRec) (n int, err error) {
     return total, nil
 }
 
-func Search(db []MdbRec, query string) (matches []MdbRec) {
-    matches = make([]MdbRec, 0, len(db))
-    for _, rec := range db {
+func Search(db []MdbRec, query string) (nums []int, matches []MdbRec) {
+    //matches = make([]MdbRec, 0, len(db))
+    for i, rec := range db {
         if strings.Contains(rec.name, query) || strings.Contains(rec.msg, query) {
             matches = append(matches, rec)
+            nums = append(nums, i+1)
         }
     }
-    return matches
+    return nums, matches
 }
 

@@ -4,6 +4,7 @@ import (
     "fmt"
     "os"
     "bufio"
+    "strings"
     "github.com/chmullig/mdb"
 )
 
@@ -27,9 +28,15 @@ func main() {
         if err != nil {
             break
         }
-    query := string(line[:5])
-    fmt.Printf("\"%s\"", query)
-    fmt.Println(mdb.Search(db, query))
-    }
+        query := strings.TrimSpace(string(line))
+        if len(query) > 5 {
+            query = query[:5]
+        }
 
+        nums, recs := mdb.Search(db, query)
+        for i := range nums {
+            fmt.Printf("%4d: %s\n", nums[i], recs[i])
+        }
+    }
+    fmt.Printf("\n")
 }
