@@ -3,8 +3,10 @@ package main
 import (
     "fmt"
     "os"
+    "io"
     "strings"
     "net"
+    "bufio"
     "github.com/chmullig/mdb"
 )
 
@@ -41,11 +43,16 @@ func main() {
 
 
 func handleConnection(conn net.Conn, db []mdb.MdbRec) {
-    fmt.Printf("handling connection %s\n", conn)
+    rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+
+    fmt.Printf("Handling connection from %s\n", conn.RemoteAddr())
+
     for {
-        buf := make([]byte, BUF_SIZE)
-        _, err := conn.Read(buf)
-        if err != nil {
+        buf, _, err := rw.ReadLine()
+        rw.Flush()
+        if err == io.EOF {
+            break
+        } else if err != nil {
             println("error reading: ", err.Error())
             break
         }
@@ -56,14 +63,15 @@ func handleConnection(conn net.Conn, db []mdb.MdbRec) {
         }
 
         nums, recs := mdb.Search(db, query)
-        fmt.Println(nums)
         for i := range nums {
-            _, err = conn.Write([]byte(fmt.Sprintf("%4d: %s\n", nums[i], recs[i])))
+            _, err = rw.Write([]byte(fmt.Sprintf("%4d: %s\n", nums[i], recs[i])))
             if err != nil {
                 println("error writing: ", err.Error())
                 break
             }
         }
+        rw.Flush()
     }
+    fmt.Printf("Done handling %s\n", conn.RemoteAddr())
     conn.Close()
 }
