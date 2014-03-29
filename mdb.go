@@ -4,6 +4,7 @@ import (
     "fmt"
     "bytes"
     "os"
+    "strings"
 )
 
 type MdbRec struct {
@@ -30,5 +31,30 @@ func LoadMdb(f* os.File) []MdbRec {
         db = append(db, rec)
     }
     return db
+}
+
+func WriteMdb(f* os.File, db []MdbRec) (n int, err error) {
+    total := 0
+    for _, rec := range db {
+        buffer := make([]byte, 40)
+        copy(buffer[:16], []byte(rec.name))
+        copy(buffer[16:], []byte(rec.msg))
+        n, err := f.Write(buffer)
+        if n != 40 {
+            return total, err
+        }
+        total++
+    }
+    return total, nil
+}
+
+func Search(db []MdbRec, query string) (matches []MdbRec) {
+    matches = make([]MdbRec, 0, len(db))
+    for _, rec := range db {
+        if strings.Contains(rec.name, query) || strings.Contains(rec.msg, query) {
+            matches = append(matches, rec)
+        }
+    }
+    return matches
 }
 
