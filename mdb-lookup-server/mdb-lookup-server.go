@@ -3,13 +3,15 @@ package main
 import (
     "fmt"
     "os"
-    "bufio"
     "strings"
+    "net"
     "github.com/chmullig/mdb"
 )
 
+const BUF_SIZE = 4096
+
 func main() {
-    if len(os.Args) != 2 {
+    if len(os.Args) != 3 {
         os.Exit(1)
     }
 
@@ -21,22 +23,47 @@ func main() {
     db := mdb.LoadMdb(fn)
     fn.Close()
 
-    in := bufio.NewReader(os.Stdin)
+    ln, err := net.Listen("tcp", fmt.Sprintf(":%s", os.Args[2]))
+    if err != nil {
+        os.Exit(1)
+    }
+
     for {
-        fmt.Printf("lookup: ")
-        line, _, err := in.ReadLine()
+        conn, err := ln.Accept()
         if err != nil {
+            fmt.Println(err)
+            continue
+        }
+        go handleConnection(conn, db)
+    }
+
+}
+
+
+func handleConnection(conn net.Conn, db []mdb.MdbRec) {
+    fmt.Printf("handling connection %s\n", conn)
+    for {
+        buf := make([]byte, BUF_SIZE)
+        _, err := conn.Read(buf)
+        if err != nil {
+            println("error reading: ", err.Error())
             break
         }
-        query := strings.TrimSpace(string(line))
+
+        query := strings.TrimSpace(string(buf))
         if len(query) > 5 {
             query = query[:5]
         }
 
         nums, recs := mdb.Search(db, query)
+        fmt.Println(nums)
         for i := range nums {
-            fmt.Printf("%4d: %s\n", nums[i], recs[i])
+            _, err = conn.Write([]byte(fmt.Sprintf("%4d: %s\n", nums[i], recs[i])))
+            if err != nil {
+                println("error writing: ", err.Error())
+                break
+            }
         }
     }
-    fmt.Printf("\n")
+    conn.Close()
 }
