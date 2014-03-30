@@ -70,6 +70,7 @@ func handleConnection(conn net.Conn, db []mdb.MdbRec) {
                 break
             }
         }
+        rw.Write([]byte("\n"))
         rw.Flush()
     }
     fmt.Printf("Done handling %s\n", conn.RemoteAddr())
